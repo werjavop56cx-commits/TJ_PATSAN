@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import asyncio
@@ -163,24 +164,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ):
                 refs["invited_by"][user_id] = inviter_id
 
-                # 50 дирам = 0.50 сомонӣ
+                # 25 дирам = 0.25 сомонӣ
                 # Балансро бо дирам нигоҳ медорем, то хатои float нашавад.
                 refs.setdefault("earned_diram", {})
                 refs["earned_diram"][inviter_id] = (
-                    int(refs["earned_diram"].get(inviter_id, 0)) + 50
+                    int(refs["earned_diram"].get(inviter_id, 0)) + 25
                 )
 
-                # Барои ҳамёни мавҷуда 0.50 сомонӣ илова мешавад.
+                # Барои ҳамёни мавҷуда 0.25 сомонӣ илова мешавад.
                 wallets = DB.setdefault("wallets", {})
                 old_balance = float(wallets.get(inviter_id, 0))
-                wallets[inviter_id] = old_balance + 0.50
+                wallets[inviter_id] = old_balance + 0.25
 
                 try:
                     await context.bot.send_message(
                         chat_id=int(inviter_id),
                         text=(
                             "🎉 Дӯсти нав тавассути пайванди шумо ворид шуд!\n\n"
-                            "🎁 Мукофот: 50 дирам (0,50 сомонӣ)\n"
+                            "🎁 Мукофот: 25 дирам (0,25 сомонӣ)\n"
                             "💰 Мукофот ба ҳамёни шумо илова шуд."
                         )
                     )
@@ -1039,7 +1040,7 @@ async def wallet_buttons(update, context):
 
         await q.message.reply_text(
             "👥 ДАЪВАТИ ДӮСТОН\n\n"
-            "🎁 Барои ҳар дӯсти нави даъватшуда: 50 дирам\n"
+            "🎁 Барои ҳар дӯсти нави даъватшуда: 25 дирам\n"
             f"👤 Дӯстони даъватшуда: {invited}\n"
             f"💰 Мукофотҳои ҷамъшуда: {earned_diram} дирам "
             f"({earned_diram / 100:.2f} сомонӣ)\n\n"
@@ -1486,11 +1487,29 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, wallet_messages))
 
     app.add_error_handler(error_handler)
-    print("DANATI_PATSANI is running...")
-    asyncio.set_event_loop(asyncio.new_event_loop())
-    app.run_polling(
-        poll_interval=0,
-        timeout=30,
+    print("DANATI_PATSANI Webhook is starting...", flush=True)
+
+    import secrets
+
+    render_url = os.getenv("RENDER_EXTERNAL_URL", "").strip().rstrip("/")
+    port = int(os.getenv("PORT", "10000"))
+    webhook_secret = os.getenv("WEBHOOK_SECRET", "").strip()
+
+    if not render_url:
+        raise SystemExit("RENDER_EXTERNAL_URL дар Render ёфт нашуд.")
+
+    if not webhook_secret:
+        raise SystemExit("WEBHOOK_SECRET дар Render насб нашудааст.")
+
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,256}", webhook_secret):
+        raise SystemExit("WEBHOOK_SECRET формати нодуруст дорад.")
+
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=port,
+        url_path=webhook_secret,
+        webhook_url=f"{render_url}/{webhook_secret}",
+        secret_token=webhook_secret,
         bootstrap_retries=-1,
         drop_pending_updates=False,
     )

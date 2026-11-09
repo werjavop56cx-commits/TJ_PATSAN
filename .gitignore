@@ -1,0 +1,21 @@
+bot.env
+.env
+__pycache__/
+*.pyc
+*.log
+danati_orders.json
+
+# Private data
+bot.env
+.env
+danati_orders.json
+*.log
+__pycache__/
+*.pyc
+*.before_webhook
+
+danati_orders.json
+danati_orders_BACKUP.json
+DANATI_FINAL_BACKUP.tar.gz
+bot.env
+*.log
